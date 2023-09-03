@@ -6,6 +6,7 @@ Looks at your 40K collection and builds an army list following some simple rules
 * must have at least one character
 * must fit within the budget
 * no more `dedicated transports` than `battleline` units
+* adheres to the rule of 3/6
 
 More logic might come later, but this is just to make pick up and casual games more interesting.
 
@@ -21,7 +22,7 @@ python list_from_collection.py -c PATH_TO_COLLECTION -s SIZE_OF_BATTLE
 `simple` is the default and will just show a summary.  `detailed` will show all the additional detail such as equipment.
 
 #### -a
-outputs your whole collection, regardless of points.  this is the default.
+outputs your whole collection, regardless of points or 3/6 restrictions.
 
 
 ## Collection

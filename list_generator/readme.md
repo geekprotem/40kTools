@@ -66,3 +66,9 @@ units:
 ```
 
 Any attributes that aren't `name` or `datasheet` are ignored, but can be useful to have.  For example, this can be used for crusade forces where you can also track that information or even details on how to assemble/paint the models.
+
+
+## TODO
+
+* make it possible to have a unit with 2 different definitions to represent optional loadouts (for those that magnetize weapons or have swappable modles)
+

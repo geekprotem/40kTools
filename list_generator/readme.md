@@ -5,7 +5,7 @@ Looks at your 40K collection and builds an army list following some simple rules
 
 * must have at least one character
 * must fit within the budget
-* no more `dedicated transports` than `battleline` units
+* no more `dedicated transports` than non-`dedicated transport` units
 * adheres to the rule of 3/6
 
 More logic might come later, but this is just to make pick up and casual games more interesting.

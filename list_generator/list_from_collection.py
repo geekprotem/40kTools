@@ -30,14 +30,28 @@ parser.add_argument(
   help='show full collection',
   action='store_true'
 )
+parser.add_argument(
+  '--datasheet',
+  required=False,
+  help='include datasheet',
+  action='append',
+  default = []
+)
 
 args = parser.parse_args()
+
+datasheets_to_include={}
+for datasheet in args.datasheet:
+  if datasheet not in datasheets_to_include:
+    datasheets_to_include[datasheet] = 0
+  datasheets_to_include[datasheet] = datasheets_to_include[datasheet] + 1
 
 def main(
     force = str,
     game_size = int,
     verbosity = str,
     showall = bool,
+    datasheets_to_include = dict,
 ):
   unit_files = os.listdir(f"{force}/units")
   unit_files.sort()
@@ -55,10 +69,16 @@ def main(
     budget = game_size,
     selected = selected,
     showall = showall,
+    datasheets_to_include = datasheets_to_include,
   )
   if result is None:
     print("unable to get compulsory character!")
     exit(1)
+
+  if result['unit']['name'] in datasheets_to_include:
+    datasheets_to_include[result['unit']['name']] = datasheets_to_include[result['unit']['name']] - 1
+    if datasheets_to_include[result['unit']['name']] == 0:
+      del datasheets_to_include[result['unit']['name']]
   del inventory[result['name']]
   total = total + result['unit']['points value']
   selected[result['name']] = result['unit']
@@ -70,9 +90,15 @@ def main(
       budget = game_size - total,
       selected = selected,
       showall = showall,
+      datasheets_to_include = datasheets_to_include,
     )
     if result is None:
       break
+
+    if result['unit']['name'] in datasheets_to_include:
+      datasheets_to_include[result['unit']['name']] = datasheets_to_include[result['unit']['name']] - 1
+      if datasheets_to_include[result['unit']['name']] == 0:
+        del datasheets_to_include[result['unit']['name']]
     del inventory[result['name']]
     total = total + result['unit']['points value']
     selected[result['name']] = result['unit']
@@ -111,13 +137,22 @@ def pick_unit(
     budget = int,
     selected = dict,
     showall = bool,
+    datasheets_to_include = list,
 ):
+  # print(f" picking a {pick_type}")
   unit_names = list(inventory.keys())
   random.shuffle(unit_names)
   for unit_name in unit_names:
-    if pick_type is not None and inventory[unit_name]['type'] == pick_type:
+    # print(f" {unit_name}")
+    if pick_type is not None and inventory[unit_name]['type'] != pick_type:
+      # print(f"  {inventory[unit_name]['type']}")
       continue
+    if len(datasheets_to_include) > 0 and inventory[unit_name]['name'] not in datasheets_to_include:
+      # print(f"{unit_name}/{inventory[unit_name]['name']} trigger skip!")
+      continue
+    # print(f"  validating {unit_name}")
     if validate_pick(selected=selected,budget=budget,unit=inventory[unit_name]) is True or showall is True:
+      # print(f"  pick made! {unit_name}")
       return {
         'name': unit_name,
         'unit': inventory[unit_name]
@@ -214,4 +249,5 @@ main(
   game_size=args.s,
   verbosity=args.v,
   showall=args.a,
+  datasheets_to_include=datasheets_to_include,
 )

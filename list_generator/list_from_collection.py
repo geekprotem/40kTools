@@ -116,13 +116,15 @@ def main(
 
   display_list(
     units = selected,
-    verbosity=verbosity
+    verbosity=verbosity,
+    size=game_size,
   )
 
 
 def display_list(
     units = dict,
     verbosity = str,
+    size = str,
 ):
   total = 0
   output = {}
@@ -139,7 +141,7 @@ def display_list(
 
     total = total + unit['points value']
   print(yaml.safe_dump(output))
-  print(f"{len(output)} units for {total} points")
+  print(f"{len(output)} units for {total}/{size} points")
 
 
 def pick_unit(

@@ -7,44 +7,52 @@ import yaml
 
 parser = argparse.ArgumentParser(description='Generate an army from a collection.')
 parser.add_argument(
-  '-c',
+  '-c', '--collection',
   type=str,
-  help='the path to the collection'
+  help='the path to the collection directory'
 )
 parser.add_argument(
-  '-s',
+  '-s', '--size',
   type=int,
-  default=1000000,
+  default=2000,
   help='max points for the list'
 )
 parser.add_argument(
-  '-v',
+  '-v', '--verbosity',
   type=str,
   choices=['simple','detailed'],
   default='simple',
   help='detail of output'
 )
 parser.add_argument(
-  '-a',
+  '-a', '--all',
   required=False,
   help='show full collection',
   action='store_true'
 )
 parser.add_argument(
-  '--datasheet',
+  '-d', '--datasheet',
   required=False,
   help='include datasheet',
+  action='append',
+  default = []
+)
+parser.add_argument(
+  '-e', '--exclude',
+  required=False,
+  help='exclude datasheet',
   action='append',
   default = []
 )
 
 args = parser.parse_args()
 
-datasheets_to_include={}
+datasheets_to_include = {}
 for datasheet in args.datasheet:
   if datasheet not in datasheets_to_include:
     datasheets_to_include[datasheet] = 0
   datasheets_to_include[datasheet] = datasheets_to_include[datasheet] + 1
+
 
 def main(
     force = str,
@@ -52,6 +60,7 @@ def main(
     verbosity = str,
     showall = bool,
     datasheets_to_include = dict,
+    datasheets_to_exclude = list,
 ):
   unit_files = os.listdir(f"{force}/units")
   unit_files.sort()
@@ -70,15 +79,16 @@ def main(
     selected = selected,
     showall = showall,
     datasheets_to_include = datasheets_to_include,
+    datasheets_to_exclude = datasheets_to_exclude,
   )
   if result is None:
     print("unable to get compulsory character!")
     exit(1)
 
-  if result['unit']['name'] in datasheets_to_include:
-    datasheets_to_include[result['unit']['name']] = datasheets_to_include[result['unit']['name']] - 1
-    if datasheets_to_include[result['unit']['name']] == 0:
-      del datasheets_to_include[result['unit']['name']]
+  if result['unit']['datasheet'] in datasheets_to_include:
+    datasheets_to_include[result['unit']['datasheet']] = datasheets_to_include[result['unit']['datasheet']] - 1
+    if datasheets_to_include[result['unit']['datasheet']] == 0:
+      del datasheets_to_include[result['unit']['datasheet']]
   del inventory[result['name']]
   total = total + result['unit']['points value']
   selected[result['name']] = result['unit']
@@ -91,14 +101,15 @@ def main(
       selected = selected,
       showall = showall,
       datasheets_to_include = datasheets_to_include,
+      datasheets_to_exclude = datasheets_to_exclude,
     )
     if result is None:
       break
 
-    if result['unit']['name'] in datasheets_to_include:
-      datasheets_to_include[result['unit']['name']] = datasheets_to_include[result['unit']['name']] - 1
-      if datasheets_to_include[result['unit']['name']] == 0:
-        del datasheets_to_include[result['unit']['name']]
+    if result['unit']['datasheet'] in datasheets_to_include:
+      datasheets_to_include[result['unit']['datasheet']] = datasheets_to_include[result['unit']['datasheet']] - 1
+      if datasheets_to_include[result['unit']['datasheet']] == 0:
+        del datasheets_to_include[result['unit']['datasheet']]
     del inventory[result['name']]
     total = total + result['unit']['points value']
     selected[result['name']] = result['unit']
@@ -117,10 +128,10 @@ def display_list(
   output = {}
   for name, unit in units.items():
     if verbosity == 'simple':
-      output[f"{unit['name']} / {name} ({unit['type']})"] = unit['points value']
+      output[f"{unit['datasheet']} / {name} ({unit['type']})"] = unit['points value']
 
     if verbosity == 'detailed':
-      output[f"{unit['name']} {name}"] = {
+      output[f"{unit['datasheet']} {name}"] = {
         'points value': unit['points value'],
         'equipment': unit['equipment'],
         'type': unit['type'],
@@ -137,7 +148,8 @@ def pick_unit(
     budget = int,
     selected = dict,
     showall = bool,
-    datasheets_to_include = list,
+    datasheets_to_include = dict,
+    datasheets_to_exclude = list,
 ):
   # print(f" picking a {pick_type}")
   unit_names = list(inventory.keys())
@@ -145,9 +157,10 @@ def pick_unit(
   for unit_name in unit_names:
     # print(f" {unit_name}")
     if pick_type is not None and inventory[unit_name]['type'] != pick_type:
-      # print(f"  {inventory[unit_name]['type']}")
       continue
-    if len(datasheets_to_include) > 0 and inventory[unit_name]['name'] not in datasheets_to_include:
+    if len(datasheets_to_exclude) > 0 and inventory[unit_name]['datasheet'] in datasheets_to_exclude:
+      continue
+    if len(datasheets_to_include) > 0 and inventory[unit_name]['datasheet'] not in datasheets_to_include:
       # print(f"{unit_name}/{inventory[unit_name]['name']} trigger skip!")
       continue
     # print(f"  validating {unit_name}")
@@ -169,7 +182,7 @@ def validate_pick(
     return False
 
   count = count_datasheet_instances(
-    datasheet_name=unit['name'],
+    datasheet_name=unit['datasheet'],
     units=selected,
   )
 
@@ -219,7 +232,7 @@ def count_datasheet_instances(
 ):
   count = 0
   for name, unit in units.items():
-    if unit['name'] == datasheet_name:
+    if unit['datasheet'] == datasheet_name:
       count = count + 1
   return count
 
@@ -237,17 +250,20 @@ def load_inventory(
       # print(filename)
       if 'units' in content:
         for unit in content['units']:
+          unit['datasheet']['datasheet'] = unit['datasheet']['name']
           inventory[unit['name']] = unit['datasheet']
       else:
+        content['datasheet']['datasheet'] = content['datasheet']['name']
         inventory[content['name']] = content['datasheet']
   return inventory
 
 
 
 main(
-  force=args.c,
-  game_size=args.s,
-  verbosity=args.v,
-  showall=args.a,
+  force=args.collection,
+  game_size=args.size,
+  verbosity=args.verbosity,
+  showall=args.all,
   datasheets_to_include=datasheets_to_include,
+  datasheets_to_exclude=args.exclude,
 )

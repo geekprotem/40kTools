@@ -18,11 +18,7 @@ python list_from_collection.py -c PATH_TO_COLLECTION -s SIZE_OF_BATTLE
 
 ### Additional options
 
-#### -v simple|detailed
-`simple` is the default and will just show a summary.  `detailed` will show all the additional detail such as equipment.
-
-#### -a
-outputs your whole collection, regardless of points or 3/6 restrictions.
+Use `-h` to see all options.
 
 
 ## Collection
@@ -72,3 +68,6 @@ Any attributes that aren't `name` or `datasheet` are ignored, but can be useful 
 
 * make it possible to have a unit with 2 different definitions to represent optional loadouts (for those that magnetize weapons or have swappable modles)
 
+* add option to restrict the number of units of a particular type|datasheet
+
+* add the ability to have a definition file to determine what picks to use

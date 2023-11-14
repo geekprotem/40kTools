@@ -44,14 +44,37 @@ parser.add_argument(
   action='append',
   default = []
 )
+parser.add_argument(
+  '-l', '--limiter',
+  required=False,
+  type=str,
+  help='limit file location',
+)
 
 args = parser.parse_args()
+
+datasheets_to_exclude = args.exclude
 
 datasheets_to_include = {}
 for datasheet in args.datasheet:
   if datasheet not in datasheets_to_include:
     datasheets_to_include[datasheet] = 0
   datasheets_to_include[datasheet] = datasheets_to_include[datasheet] + 1
+
+if args.limiter:
+  with open(f"{args.collection}/limiters/{args.limiter}.yaml", 'r') as file:
+    content = yaml.safe_load(file)
+    if 'include' in content:
+      if 'datasheets' in content['include']:
+        for datasheet, count in content['include']['datasheets'].items():
+          if datasheet not in datasheets_to_include:
+            datasheets_to_include[datasheet] = 0
+          datasheets_to_include[datasheet] = datasheets_to_include[datasheet] + count
+    if 'exclude' in content:
+      if 'datasheets' in content['exclude']:
+        for datasheet in content['exclude']['datasheets']:
+          if datasheet not in datasheets_to_exclude:
+            datasheets_to_exclude.append(datasheet)
 
 
 def main(
@@ -127,6 +150,7 @@ def display_list(
     size = str,
 ):
   total = 0
+  models = 0
   output = {}
   for name, unit in units.items():
     if verbosity == 'simple':
@@ -136,12 +160,14 @@ def display_list(
       output[f"{unit['datasheet']} {name}"] = {
         'points value': unit['points value'],
         'equipment': unit['equipment'],
+        'models': unit['models'],
         'type': unit['type'],
       }
 
     total = total + unit['points value']
+    models = models + unit['models']
   print(yaml.safe_dump(output))
-  print(f"{len(output)} units for {total}/{size} points")
+  print(f"{len(output)} units ({models} models) for {total}/{size} points")
 
 
 def pick_unit(
@@ -245,6 +271,13 @@ def load_inventory(
   unit_files = os.listdir(path)
   unit_files.sort()
 
+  defaults = {
+    'points value': 0,
+    'equipment': [],
+    'models': 0,
+    'type': 'other'
+  }
+
   inventory = {}
   for filename in unit_files:
     with open(f"{path}/{filename}", 'r') as file:
@@ -252,11 +285,12 @@ def load_inventory(
       # print(filename)
       if 'units' in content:
         for unit in content['units']:
-          unit['datasheet']['datasheet'] = unit['datasheet']['name']
-          inventory[unit['name']] = unit['datasheet']
-      else:
-        content['datasheet']['datasheet'] = content['datasheet']['name']
-        inventory[content['name']] = content['datasheet']
+          for key, value in defaults.items():
+            if key not in unit:
+              unit[key] = value
+          if 'datasheet' not in unit:
+            continue
+          inventory[unit['name']] = unit
   return inventory
 
 
@@ -267,5 +301,5 @@ main(
   verbosity=args.verbosity,
   showall=args.all,
   datasheets_to_include=datasheets_to_include,
-  datasheets_to_exclude=args.exclude,
+  datasheets_to_exclude=datasheets_to_exclude,
 )
